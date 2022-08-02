@@ -217,7 +217,13 @@ void work_per_single_read(core_t* core, db_t* db, int32_t i, int32_t thread_inde
 }
 
 /* process all reads in the given batch db */
-void work_db(core_t* core, db_t* db) {
+void * work_db(void * args) {
+    struct timeval sw_begin, sw_end;
+    gettimeofday(&sw_begin, NULL);
+
+    sw_batch_t * sw_batch = (sw_batch_t *)args;
+    core_t* core = &(sw_batch->core);
+    db_t* db = &(sw_batch->db);
 
     /*
     printf("n_batch = %d\n", db->n_batch);
@@ -236,6 +242,13 @@ void work_db(core_t* core, db_t* db) {
     } else {
         pthread_db(core, db, work_per_single_read);
     }
+
+    gettimeofday(&sw_end, NULL);
+
+    float sw_time = 1.0 * (sw_end.tv_sec - sw_begin.tv_sec) + 1.0 * (sw_end.tv_usec - sw_begin.tv_usec) / 1000000;
+    fprintf(stderr, "\nTime for multi-threaded software execution: %0.3f s\n", sw_time);
+    
+    pthread_exit(0);
 }
 
 const char LogTable256[256] = {

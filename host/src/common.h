@@ -22,10 +22,10 @@ using namespace std;
 
 // parameters for multi-threaded software execution
 #define NUM_SW_THREADS 20
-#define USE_SIMD
+// #define USE_SIMD
 
 // parameters for HW/SW split
-#define BETTER_ON_HW_THRESH 0.3
+#define BETTER_ON_HW_THRESH 0.2
 
 // for main.cpp
 typedef struct {
@@ -86,6 +86,11 @@ typedef struct {
     cl_float* avg_qspan;
 } db_t;
 
+typedef struct {
+    core_t core;
+    db_t db;
+} sw_batch_t;
+
 // argument wrapper for the multithreaded framework used for data processing 
 typedef struct {
     core_t* core;
@@ -99,7 +104,7 @@ typedef struct {
 #endif
 } pthread_arg_t;
 
-void work_db(core_t* core, db_t* db);
+void * work_db(void * args);
 
 void minimap2_opencl_sw(long n, int max_dist_x, int max_dist_y, int bw, cl_ulong2 * a,
                         int* f, int* p, float avg_qspan);

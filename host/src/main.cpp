@@ -374,6 +374,39 @@ coarse_batch_timing_t process_coarse_grained_batch(vector<cl_ulong2> &a, cl_int*
     struct timeval begin, end;
     gettimeofday(&begin, NULL);
 
+    // [START] multi-threaded software execution scheduling
+    sw_batch_t sw_batch;
+	core_t core;
+    db_t db;
+
+    core.num_thread = NUM_SW_THREADS;
+
+    db.n_batch = calls_sw.size();
+    db.calls_sw = &calls_sw[0];
+
+	db.a = &a[0];
+	db.f = f;
+	db.p = p;
+    db.a_offsets = &a_offsets[0];
+
+	db.n = &n[0];
+	db.max_dist_x = &max_dist_x[0];
+	db.max_dist_y = &max_dist_y[0];
+	db.bw = &bw[0];
+    db.avg_qspan = &avg_qspan[0];
+
+    sw_batch.core = core;
+    sw_batch.db = db;
+
+    pthread_t sw_tid;
+    pthread_create(&sw_tid, NULL, work_db, (void *)&sw_batch);
+    // [END] multi-threaded software execution scheduling
+
+
+    // [START] hardware execution scheduling
+    struct timeval hw_begin, hw_end;
+    gettimeofday(&hw_begin, NULL);
+
     int batches_count = batches.size();
 
     cl_event dependencies[3];
@@ -528,42 +561,20 @@ coarse_batch_timing_t process_coarse_grained_batch(vector<cl_ulong2> &a, cl_int*
         // save number of kernels that got active for this batch (since it's used later)
         kernel_event_count_list[i] = kernel_event_count;
     }
-    //fprintf(stderr, "[INFO] Hardware work enqueuing done!\n");
+    // [END] hardware execution scheduling
 
-    struct timeval sw_begin, sw_end;
-    gettimeofday(&sw_begin, NULL);
 
-    // multi-threaded software execution
-	core_t core;
-    db_t db;
-
-    core.num_thread = NUM_SW_THREADS;
-
-    db.n_batch = calls_sw.size();
-    db.calls_sw = &calls_sw[0];
-
-	db.a = &a[0];
-	db.f = f;
-	db.p = p;
-    db.a_offsets = &a_offsets[0];
-
-	db.n = &n[0];
-	db.max_dist_x = &max_dist_x[0];
-	db.max_dist_y = &max_dist_y[0];
-	db.bw = &bw[0];
-    db.avg_qspan = &avg_qspan[0];
-
-    work_db(&core, &db); 
-
-    gettimeofday(&sw_end, NULL);
-
-    //fprintf(stderr, "[INFO] Multi-threaded software processing done!\n");
-
-    // wait for all hardware work to finish
+    // wait until hardware execution finishes
     status = clFinish(read_q);
     checkError(status, "Failed to finish read_q");
 
-    //fprintf(stderr, "[INFO] Total work done!\n");
+    gettimeofday(&hw_end, NULL);
+    float hw_time = 1.0 * (hw_end.tv_sec - hw_begin.tv_sec) + 1.0 * (hw_end.tv_usec - hw_begin.tv_usec) / 1000000;
+    fprintf(stderr, "\nTime for hardware execution: %0.3f s\n", hw_time);
+
+    // wait until the multi-threaded software execution finishes
+    pthread_join(sw_tid, NULL);
+
 
     coarse_batch_timing_t batch_timing;
 
@@ -571,19 +582,6 @@ coarse_batch_timing_t process_coarse_grained_batch(vector<cl_ulong2> &a, cl_int*
     gettimeofday(&end, NULL);
     batch_timing.total_time = 1.0 * (end.tv_sec - begin.tv_sec) + 1.0 * (end.tv_usec - begin.tv_usec) / 1000000;
     fprintf(stderr, "\nTotal time for coarse-grained batch: %0.3f s\n", batch_timing.total_time);
-
-    float sw_time = 1.0 * (sw_end.tv_sec - sw_begin.tv_sec) + 1.0 * (sw_end.tv_usec - sw_begin.tv_usec) / 1000000;
-    fprintf(stderr, "\nTime for multi-threaded software execution: %0.3f s\n", sw_time);
-
-
-    /* // print time taken only for execution on hardware
-    cl_ulong exec_time_ns = 0;
-    for (int i = 0; i < batches_count; i++) {
-        for (int j = 0; j < kernel_event_count_list[i]; j++) {
-            exec_time_ns += getStartEndTime(kernel_event[i][j]);
-        }
-    }
-    fprintf(stderr, "Total execution time for hardware calls in coarse-grained batch\t: %0.3f s\n", double(exec_time_ns) * 1e-9); */
 
     // print times spent for data transfer
     cl_ulong time_ns = 0;
