@@ -22,20 +22,6 @@ static inline float mg_log2(float x) // NB: this doesn't work when x<2
 #define MM_SEED_SEG_SHIFT 48
 #define MM_SEED_SEG_MASK (0xffULL << (MM_SEED_SEG_SHIFT))
 
-static inline double cputime(void) {
-    struct rusage r;
-    getrusage(RUSAGE_SELF, &r);
-    return r.ru_utime.tv_sec + r.ru_stime.tv_sec +
-           1e-6 * (r.ru_utime.tv_usec + r.ru_stime.tv_usec);
-}
-
-static inline double realtime(void) {
-    struct timeval tp;
-    struct timezone tzp;
-    gettimeofday(&tp, &tzp);
-    return tp.tv_sec + tp.tv_usec * 1e-6;
-}
-
 // Die on error. Print the error and exit if the return value of the previous function is -1
 static inline void neg_chk(int ret, const char* func, const char* file,
                            int line) {
@@ -163,14 +149,7 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*, db_t*, int, int32_
 
 /* process the ith read in the batch db */
 void work_per_single_read(core_t* core, db_t* db, int32_t i, int32_t thread_index) {
-
-    double start = realtime();
-
-    //printf("%d\n", thread_index);
-
     int call = db->calls_sw[i];
-
-    //printf("call %d started\n", call);
 
     long n = db->n[call];
     int max_dist_x = db->max_dist_x[call];
