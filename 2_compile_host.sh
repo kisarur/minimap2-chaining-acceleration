@@ -1,3 +1,3 @@
-aocl help > /dev/null || source ../init_env.sh
+aocl help > /dev/null || source init_env.sh
 make clean
 make
