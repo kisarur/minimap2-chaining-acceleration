@@ -2,3 +2,4 @@ bin/
 scripts/
 TAL/
 results/
+!bin/minimap2_chain.aocx
