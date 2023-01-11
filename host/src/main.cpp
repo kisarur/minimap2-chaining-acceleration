@@ -210,15 +210,15 @@ int chain_anchors(char* infile_name) {
             }
 
             // calculate the parameter that helps decide whether to schedule the call on hw or sw
-            float better_on_hw_frac;
+            float sw_hw_frac;
             if (n_temp > 0) { // can have some other threshold than 0 (eg. MIN_ANCHORS) to force processing small calls on software
-                better_on_hw_frac = (float) total_trip_count / (n_temp * 64);
+                sw_hw_frac = (float) total_trip_count / (n_temp * 64);
             } else {
-                better_on_hw_frac = 0;
+                sw_hw_frac = 0;
             }
 
             // schedule current call to be executed on hw, if it performs better on hardware
-            if (better_on_hw_frac >= BETTER_ON_HW_THRESH) { // better_on_hw_frac >= 0.2 for human refmap
+            if (sw_hw_frac >= SW_HW_THRESHOLD) {
 
                 // create a new fine-grained data batch if it's required (i.e. adding the current read to batch exceeds buffer capacity - BUFFER_N)
                 if (hw_fine_batch_total_n + n_temp > BUFFER_N) {

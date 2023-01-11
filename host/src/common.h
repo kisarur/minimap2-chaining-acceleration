@@ -25,7 +25,7 @@ using namespace std;
 #define USE_SIMD
 
 // parameters for HW/SW split
-#define BETTER_ON_HW_THRESH 0.3
+#define SW_HW_THRESHOLD 0.2
 
 // for main.cpp
 typedef struct {
