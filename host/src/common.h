@@ -22,7 +22,7 @@ using namespace std;
 
 // parameters for multi-threaded software execution
 #define NUM_SW_THREADS 20
-#define USE_SIMD
+// #define USE_SIMD
 
 // parameters for HW/SW split
 #define SW_HW_THRESHOLD 0.2
