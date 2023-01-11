@@ -698,7 +698,7 @@ bool init(long buf_size) {
     checkError(status, "Failed to create main command read_q");
 
     // Create the program.
-    std::string binary_file = getBoardBinaryFile("minimap2_opencl", device);
+    std::string binary_file = getBoardBinaryFile("minimap2_chain", device);
     fprintf(stderr, "Using AOCX: %s\n", binary_file.c_str());
     program = createProgramFromBinary(context, binary_file.c_str(), &device, 1);
 
@@ -712,7 +712,7 @@ bool init(long buf_size) {
     for (int i = 0; i < NUM_HW_KERNELS; i++) {
         // Generate the kernel name (minimap2_opencl0, minimap2_opencl1, minimap2_opencl2, etc.), as defined in the CL file
         std::ostringstream kernel_name;
-        kernel_name << "minimap2_opencl" << i;
+        kernel_name << "chain" << i;
 
         kernels[i] = clCreateKernel(program, kernel_name.str().c_str(), &status);
         checkError(status, "Failed to create kernel");
