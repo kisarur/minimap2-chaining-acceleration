@@ -663,7 +663,7 @@ bool init(long buf_size) {
     // original CL file, that was compiled into an AOCX file using the AOC tool
     // This also creates a seperate command queue for each kernel
     for (int i = 0; i < NUM_HW_KERNELS; i++) {
-        // Generate the kernel name (minimap2_opencl0, minimap2_opencl1, minimap2_opencl2, etc.), as defined in the CL file
+        // Generate the kernel name (chain0, chain1, chain2, etc.), as defined in the CL file
         std::ostringstream kernel_name;
         kernel_name << "chain" << i;
 
