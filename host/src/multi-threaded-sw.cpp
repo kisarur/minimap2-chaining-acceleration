@@ -39,9 +39,7 @@ static inline int32_t steal_work(pthread_arg_t* all_args, int32_t n_threads) {
     int32_t k;
     for (i = 0; i < n_threads; ++i) {
         pthread_arg_t args = all_args[i];
-        //fprintf(stderr,"endi : %d, starti : %d\n",args.endi,args.starti);
         if (args.endi - args.starti > STEAL_THRESH) {
-            //fprintf(stderr,"gap : %d\n",args.endi-args.starti);
             c_i = i;
             break;
         }
@@ -50,20 +48,16 @@ static inline int32_t steal_work(pthread_arg_t* all_args, int32_t n_threads) {
         return -1;
     }
     k = __sync_fetch_and_add(&(all_args[c_i].starti), 1);
-    //fprintf(stderr,"k : %d, end %d, start %d\n",k,all_args[c_i].endi,all_args[c_i].starti);
     return k >= all_args[c_i].endi ? -1 : k;
 }
 
 void* pthread_single(void* voidargs) {
-    //const double start_time = aocl_utils::getCurrentTimestamp();
 
     int32_t i;
     pthread_arg_t* args = (pthread_arg_t*)voidargs;
     db_t* db = args->db;
     core_t* core = args->core;
-    int32_t thread_index = args->thread_index;  // kisaru
-
-    //printf("[INFO] Thread %d started!\n", thread_index);
+    int32_t thread_index = args->thread_index; 
 
 #ifndef WORK_STEAL
     for (i = args->starti; i < args->endi; i++) {
@@ -84,12 +78,6 @@ void* pthread_single(void* voidargs) {
     }
 #endif
 
-    //const double end_time = aocl_utils::getCurrentTimestamp();
-
-    // Wall-clock time taken for the thread.
-    //printf("[INFO] Thread %d Time (HW)\t: %0.3f ms\n", thread_index, (end_time - start_time) * 1e3);
-
-    //fprintf(stderr,"Thread %d done\n",(myargs->position)/THREADS);
     pthread_exit(0);
 }
 
@@ -116,15 +104,11 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*, db_t*, int, int32_
             pt_args[t].endi = i;
         }
         pt_args[t].func = func;
-        pt_args[t].thread_index = t;  // kisaru
+        pt_args[t].thread_index = t;
 #ifdef WORK_STEAL
         pt_args[t].all_pthread_args = (void*)pt_args;
 #endif
-        //fprintf(stderr,"t%d : %d-%d\n",t,pt_args[t].starti,pt_args[t].endi);
     }
-
-    //double cpu1 = cputime();
-    //double real1 = realtime();
 
     //create threads
     for (t = 0; t < core->num_thread; t++) {
@@ -132,19 +116,12 @@ void pthread_db(core_t* core, db_t* db, void (*func)(core_t*, db_t*, int, int32_
                              (void*)(&pt_args[t]));
         NEG_CHK(ret);
     }
-    //printf("[INFO] pthread creation done!\n");
 
     //pthread joining
     for (t = 0; t < core->num_thread; t++) {
         int ret = pthread_join(tids[t], NULL);
         NEG_CHK(ret);
     }
-
-    //double cpu2 = cputime();
-    //double real2 = realtime();
-
-    //printf("cpu time = %f\n", (cpu2 - cpu1));
-    //printf("real time = %f\n", (real2 - real1));
 }
 
 /* process the ith read in the batch db */
@@ -181,13 +158,11 @@ void work_per_single_read(core_t* core, db_t* db, int32_t i, int32_t thread_inde
 	num_bits_t *anchor_r, *anchor_q, *anchor_l;
 	create_SoA_Anchors_32_bit(anchors, n, anchor_r, anchor_q, anchor_l);
 
-    // dp_chain obj(max_dist_x, max_dist_y, bw, 25, 64, 0, 0, 0, 0, 0, 0); // dummy params
-	dp_chain obj(max_dist_x, max_dist_y, bw, 25, 64, 3, 40, 0.12, 0.0, 0, 1); // correct params (note: max_iter is set to 64 to match with ours)
+	dp_chain obj(max_dist_x, max_dist_y, bw, 25, 64, 3, 40, 0.12, 0.0, 0, 1); // correct params (note: max_iter is set to 64 to match with other implementations)
 
-    //kisaru
     uint32_t* f_1 = (uint32_t*)malloc(n * sizeof(uint32_t));
     int* p_1 = (int*)malloc(n * sizeof(int));
-    int* v_1;//= (int*)malloc(n * sizeof(int));
+    int* v_1;
 
 	obj.mm_dp_vectorized(n, &anchors[0], anchor_r, anchor_q, anchor_l, f_1, p_1, v_1, max_dist_x, max_dist_y, NULL, NULL);
 
@@ -200,34 +175,17 @@ void work_per_single_read(core_t* core, db_t* db, int32_t i, int32_t thread_inde
 	for(int i = 0; i < n; i++){
         f[i] = f_1[i];
         p[i] = p_1[i];
-        //v[i] = v_1[i]; //kisaru
 	}
 
-    //kisaru
 	free(f_1);
 	free(p_1);
-	//free(v_1);
 
 #endif
-
-    //printf("call %d finished\n", call);
-
-    //fprintf(stderr,"n: %d, time(ms): %f\n", n, (realtime() - start) * 1000);
 
 }
 
 /* process all reads in the given batch db */
 void work_db(core_t* core, db_t* db) {
-
-    /*
-    printf("n_batch = %d\n", db->n_batch);
-    printf("size(calls_sw) = %d\n", db->calls_sw.size());
-    for (int i = 0; i < db->calls_sw.size(); i++) {
-        printf("%d, ", db->calls_sw[i]);
-    }
-    printf("\n");
-    */
-
     if (core->num_thread == 1) {
         int32_t i = 0;
         for (i = 0; i < db->n_batch; i++) {
@@ -272,7 +230,7 @@ void minimap2_opencl_sw(long n, int max_dist_x, int max_dist_y, int bw, cl_ulong
             if ((/*sidi == sidj*/ 1 && dq > max_dist_y) || dq > max_dist_x) continue;
             dd = dr > dq ? dr - dq : dq - dr;
             if (/*sidi == sidj*/ 1 && dd > bw) continue;
-            if (/*n_segs > 1 kisaru*/ 1 && /*!is_cdna*/ 1 && /*sidi == sidj*/ 1 && dr > max_dist_y) continue;
+            if (/*n_segs > 1 */ 1 && /*!is_cdna*/ 1 && /*sidi == sidj*/ 1 && dr > max_dist_y) continue;
             min_d = dq < dr ? dq : dr;
             sc = min_d > q_span ? q_span : dq < dr ? dq
                                                    : dr;
