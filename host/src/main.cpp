@@ -69,7 +69,7 @@ int chain_anchors(char* infile_name) {
     vector<hw_fine_batch_t> batches;
 
     // to keep track of total time taken for the whole dataset
-    coarse_batch_timing_t dataset_total_time = {0};
+    float dataset_total_time = 0;
 
     // extract data from infile
     int coarse_grained_batch_count = 0;
@@ -127,9 +127,8 @@ int chain_anchors(char* infile_name) {
                 fprintf(stderr, "------------------------\n");
 
                 // process coarse-grained batch and write output to file
-                coarse_batch_timing_t batch_timing = process_coarse_grained_batch(a, f, p, a_offsets, a_hw, f_hw, p_hw, a_hw_offsets, batches, calls_hw, calls_sw, n, max_dist_x, max_dist_y, bw, avg_qspan);
-                dataset_total_time.total_time += batch_timing.total_time;
-                dataset_total_time.data_transfer_time += batch_timing.data_transfer_time;
+                float batch_timing = process_coarse_grained_batch(a, f, p, a_offsets, a_hw, f_hw, p_hw, a_hw_offsets, batches, calls_hw, calls_sw, n, max_dist_x, max_dist_y, bw, avg_qspan);
+                dataset_total_time += batch_timing;
 
                 // write output to stdout
                 write_output(n, f, p, a_offsets, f_hw, p_hw, a_hw_offsets);
@@ -297,9 +296,8 @@ int chain_anchors(char* infile_name) {
     fprintf(stderr, "------------------------\n");
 
     // process coarse-grained batch and write output to file
-    coarse_batch_timing_t batch_timing = process_coarse_grained_batch(a, f, p, a_offsets, a_hw, f_hw, p_hw, a_hw_offsets, batches, calls_hw, calls_sw, n, max_dist_x, max_dist_y, bw, avg_qspan);
-    dataset_total_time.total_time += batch_timing.total_time;
-    dataset_total_time.data_transfer_time += batch_timing.data_transfer_time;
+    float batch_timing = process_coarse_grained_batch(a, f, p, a_offsets, a_hw, f_hw, p_hw, a_hw_offsets, batches, calls_hw, calls_sw, n, max_dist_x, max_dist_y, bw, avg_qspan);
+    dataset_total_time += batch_timing;
 
     // write output to stdout
     write_output(n, f, p, a_offsets, f_hw, p_hw, a_hw_offsets);
@@ -315,8 +313,8 @@ int chain_anchors(char* infile_name) {
     cleanup();
 
     // print total timing for the whole dataset
-    fprintf(stderr, "\nTotal processing time for the whole dataset: %0.3f s\n", dataset_total_time.total_time);
-    fprintf(stderr, "Total data transfer time for the whole dataset: %0.3f s\n", dataset_total_time.data_transfer_time);
+    fprintf(stderr, "\n====================================================\n", dataset_total_time);
+    fprintf(stderr, "\nTotal processing time for the whole dataset: %0.3f s\n", dataset_total_time);
 
     return 0;
 }
@@ -329,7 +327,7 @@ Process a Coarse-grained Batch of Data
 --------------------------------------
 */
 
-coarse_batch_timing_t process_coarse_grained_batch(vector<cl_ulong2> &a, cl_int* f, cl_int* p, vector<cl_long> &a_offsets,
+float process_coarse_grained_batch(vector<cl_ulong2> &a, cl_int* f, cl_int* p, vector<cl_long> &a_offsets,
                                                     vector<cl_ulong2> &a_hw, cl_int* f_hw, cl_int* p_hw, vector<cl_long> &a_hw_offsets,
                                                     vector<hw_fine_batch_t> &batches, vector<int> &calls_hw, vector<int> &calls_sw,
                                                     vector<cl_long> &n, vector<cl_int> &max_dist_x, vector<cl_int> &max_dist_y,
@@ -530,9 +528,6 @@ coarse_batch_timing_t process_coarse_grained_batch(vector<cl_ulong2> &a, cl_int*
     }
     //fprintf(stderr, "[INFO] Hardware work enqueuing done!\n");
 
-    struct timeval sw_begin, sw_end;
-    gettimeofday(&sw_begin, NULL);
-
     // multi-threaded software execution
 	core_t core;
     db_t db;
@@ -555,8 +550,6 @@ coarse_batch_timing_t process_coarse_grained_batch(vector<cl_ulong2> &a, cl_int*
 
     work_db(&core, &db); 
 
-    gettimeofday(&sw_end, NULL);
-
     //fprintf(stderr, "[INFO] Multi-threaded software processing done!\n");
 
     // wait for all hardware work to finish
@@ -565,52 +558,12 @@ coarse_batch_timing_t process_coarse_grained_batch(vector<cl_ulong2> &a, cl_int*
 
     //fprintf(stderr, "[INFO] Total work done!\n");
 
-    coarse_batch_timing_t batch_timing;
+    float batch_timing;
 
     // print total time taken for processing the batch
     gettimeofday(&end, NULL);
-    batch_timing.total_time = 1.0 * (end.tv_sec - begin.tv_sec) + 1.0 * (end.tv_usec - begin.tv_usec) / 1000000;
-    fprintf(stderr, "\nTotal time for coarse-grained batch: %0.3f s\n", batch_timing.total_time);
-
-    float sw_time = 1.0 * (sw_end.tv_sec - sw_begin.tv_sec) + 1.0 * (sw_end.tv_usec - sw_begin.tv_usec) / 1000000;
-    fprintf(stderr, "\nTime for multi-threaded software execution: %0.3f s\n", sw_time);
-
-
-    /* // print time taken only for execution on hardware
-    cl_ulong exec_time_ns = 0;
-    for (int i = 0; i < batches_count; i++) {
-        for (int j = 0; j < kernel_event_count_list[i]; j++) {
-            exec_time_ns += getStartEndTime(kernel_event[i][j]);
-        }
-    }
-    fprintf(stderr, "Total execution time for hardware calls in coarse-grained batch\t: %0.3f s\n", double(exec_time_ns) * 1e-9); */
-
-    // print times spent for data transfer
-    cl_ulong time_ns = 0;
-    cl_ulong total_time_ns = 0;
-
-    for (int i = 0; i < batches_count; i++) {
-        time_ns += getStartEndTime(write_event[i]);
-    }
-    total_time_ns += time_ns;
-    fprintf(stderr, "Total transfer time (a)\t: %0.3f s\n", double(time_ns) * 1e-9);
-
-    time_ns = 0;
-    for (int i = 0; i < batches_count; i++) {
-        time_ns += getStartEndTime(f_read_event[i]);
-    }
-    total_time_ns += time_ns;
-    fprintf(stderr, "Total transfer time (f)\t: %0.3f s\n", double(time_ns) * 1e-9);
-
-    time_ns = 0;
-    for (int i = 0; i < batches_count; i++) {
-        time_ns += getStartEndTime(p_read_event[i]);
-    }
-    total_time_ns += time_ns;
-    fprintf(stderr, "Total transfer time (p)\t: %0.3f s\n", double(time_ns) * 1e-9);
-
-    batch_timing.data_transfer_time = double(total_time_ns) * 1e-9;
-    fprintf(stderr, "Total transfer time (a + f + p)\t: %0.3f s\n", batch_timing.data_transfer_time);
+    batch_timing = 1.0 * (end.tv_sec - begin.tv_sec) + 1.0 * (end.tv_usec - begin.tv_usec) / 1000000;
+    fprintf(stderr, "\nTime for coarse-grained batch: %0.3f s\n", batch_timing);
 
     // release events.
     for (int i = 0; i < batches_count; i++) {

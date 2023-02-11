@@ -34,15 +34,10 @@ typedef struct {
     cl_long total_n;
 } hw_fine_batch_t;
 
-typedef struct {
-    float total_time;
-    float data_transfer_time;
-} coarse_batch_timing_t;
-
 #define STRING_BUFFER_LEN 1024
 
 int chain_anchors(char *);
-coarse_batch_timing_t process_coarse_grained_batch(vector<cl_ulong2> &a, cl_int* f, cl_int* p, vector<cl_long> &a_offsets,
+float process_coarse_grained_batch(vector<cl_ulong2> &a, cl_int* f, cl_int* p, vector<cl_long> &a_offsets,
                                                     vector<cl_ulong2> &a_hw, cl_int* f_hw, cl_int* p_hw, vector<cl_long> &a_hw_offsets,
                                                     vector<hw_fine_batch_t> &batches, vector<int> &calls_hw, vector<int> &calls_sw,
                                                     vector<cl_long> &n, vector<cl_int> &max_dist_x, vector<cl_int> &max_dist_y,
