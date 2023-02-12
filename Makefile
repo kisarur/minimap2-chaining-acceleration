@@ -67,7 +67,7 @@ SRCS := $(wildcard host/src/*.cpp opencl/src/AOCLUtils/*.cpp)
 LIBS := rt pthread
 
 # for SIMD-based chaining in mm2-fast
-INC_DIRS +=	TAL/src/dynamic-programming 
+INC_DIRS +=	ext/TAL/src/dynamic-programming 
 
 # Make it all!
 all : $(TARGET_DIR)/$(TARGET)
