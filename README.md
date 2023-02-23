@@ -1,6 +1,6 @@
 # Minimap2's Chaining Step Accelerator
 
-This is a heterogeneous computing system that is designed to accelerate compute-intensive chaining step in the third-generation DNA sequence analysis tool - [Minimap2](https://github.com/lh3/minimap2). The system combines an OpenCL HLS-based FPGA (Intel Arria 10 GX) hardware accelerator and a multi-threaded software framework to accelerate the hotspot of the tool. The system can efficiently split a given set of chaining tasks between hardware accelerator (FPGA-based) software (CPU) platforms based on each chaining task’s computational complexity, and process the split tasks on both the platforms in parallel. Further details about this work is available in the following publication. 
+This is a heterogeneous computing system that is designed to accelerate compute-intensive chaining step in the third-generation DNA sequence analysis tool - [Minimap2](https://github.com/lh3/minimap2). The system combines an OpenCL HLS-based FPGA (Intel Arria 10 GX) hardware accelerator and a multi-threaded software framework to accelerate the hotspot of the tool. The system can efficiently split a given set of chaining tasks between hardware accelerator (FPGA-based) and software (CPU) platforms based on each chaining task’s computational complexity, and process the split tasks on both the platforms in parallel. Further details about this work is available in the following publication. 
 
 > K. Liyanage, H. Gamaarachchi, R. Ragel and S. Parameswaran, "[Cross Layer Design Using HW/SW Co-Design and HLS to Accelerate Chaining in Genomic Analysis](https://ieeexplore.ieee.org/document/10015864)," in IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems, doi: 10.1109/TCAD.2023.3236559.
 
@@ -8,7 +8,7 @@ This is a heterogeneous computing system that is designed to accelerate compute-
 
 1. Install "Intel® PAC with Intel® Arria® 10 GX FPGA Acceleration Stack Version 1.2.1" on the system 
 
-2. Use the commands below to download the GitHub repo, setup the environment (you may need to update the variables defined in opencl/init_env.sh, if they're not already pointing to the correct paths in your system), and build the host application
+2. Use the commands below to download the GitHub repo, setup the environment (you may need to update the variables defined in `opencl/init_env.sh`, if they're not already pointing to the correct paths in your system), and build the host application
 ```
 git clone --recurse-submodules git@github.com:kisarur/minimap2_chaining_acceleration.git
 cd minimap2_chaining_acceleration
