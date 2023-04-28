@@ -10,8 +10,8 @@ This is a heterogeneous computing system that is designed to accelerate compute-
 
 2. Use the commands below to download the GitHub repo, setup the environment (you may need to update the variables defined in `opencl/init_env.sh`, if they're not already pointing to the correct paths in your system), and build the host application
 ```
-git clone --recurse-submodules git@github.com:kisarur/minimap2_chaining_acceleration.git
-cd minimap2_chaining_acceleration
+git clone --recurse-submodules https://github.com/kisarur/minimap2-chaining-acceleration.git
+cd minimap2-chaining-acceleration
 source opencl/init_env.sh
 make
 ```
